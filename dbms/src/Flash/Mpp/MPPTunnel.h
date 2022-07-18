@@ -19,6 +19,7 @@
 #include <Common/ThreadManager.h>
 #include <Flash/FlashService.h>
 #include <Flash/Mpp/PacketWriter.h>
+#include <Flash/Mpp/TrackedMppDataPacket.h>
 #include <Flash/Statistics/ConnectionProfileInfo.h>
 #include <common/logger_useful.h>
 #include <common/types.h>
@@ -62,7 +63,8 @@ class TunnelSender : private boost::noncopyable
 {
 public:
     using MPPDataPacketPtr = std::shared_ptr<mpp::MPPDataPacket>;
-    using DataPacketMPMCQueuePtr = std::shared_ptr<MPMCQueue<MPPDataPacketPtr>>;
+    using TrackedMPPDataPacketPtr = std::shared_ptr<DB::TrackedMppDataPacket>;
+    using DataPacketMPMCQueuePtr = std::shared_ptr<MPMCQueue<TrackedMPPDataPacketPtr>>;
     virtual ~TunnelSender() = default;
     TunnelSender(TunnelSenderMode mode_, DataPacketMPMCQueuePtr send_queue_, PacketWriter * writer_, const LoggerPtr log_, const String & tunnel_id_)
         : mode(mode_)
@@ -278,8 +280,8 @@ private:
     // tunnel id is in the format like "tunnel[sender]+[receiver]"
     String tunnel_id;
 
-    using MPPDataPacketPtr = std::shared_ptr<mpp::MPPDataPacket>;
-    using DataPacketMPMCQueuePtr = std::shared_ptr<MPMCQueue<MPPDataPacketPtr>>;
+    using TrackedMPPDataPacketPtr = std::shared_ptr<DB::TrackedMppDataPacket>;
+    using DataPacketMPMCQueuePtr = std::shared_ptr<MPMCQueue<TrackedMPPDataPacketPtr>>;
     DataPacketMPMCQueuePtr send_queue;
     ConnectionProfileInfo connection_profile_info;
     const LoggerPtr log;

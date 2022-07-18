@@ -49,7 +49,7 @@ MPPTunnel::MPPTunnel(
     : status(TunnelStatus::Unconnected)
     , timeout(timeout_)
     , tunnel_id(tunnel_id_)
-    , send_queue(std::make_shared<MPMCQueue<MPPDataPacketPtr>>(std::max(5, input_steams_num_ * 5))) // MPMCQueue can benefit from a slightly larger queue size
+    , send_queue(std::make_shared<MPMCQueue<TrackedMPPDataPacketPtr>>(std::max(5, input_steams_num_ * 5))) // MPMCQueue can benefit from a slightly larger queue size
     , log(Logger::get("MPPTunnel", req_id, tunnel_id))
 {
     RUNTIME_ASSERT(!(is_local_ && is_async_), log, "is_local: {}, is_async: {}.", is_local_, is_async_);
@@ -118,7 +118,7 @@ void MPPTunnel::close(const String & reason)
                 try
                 {
                     FAIL_POINT_TRIGGER_EXCEPTION(FailPoints::exception_during_mpp_close_tunnel);
-                    send_queue->push(std::make_shared<mpp::MPPDataPacket>(getPacketWithError(reason)));
+                    send_queue->push(std::make_shared<DB::TrackedMppDataPacket>(getPacketWithError(reason)));
                     if (mode == TunnelSenderMode::ASYNC_GRPC)
                         async_tunnel_sender->tryFlushOne();
                 }
@@ -153,7 +153,7 @@ void MPPTunnel::write(const mpp::MPPDataPacket & data, bool close_after_write)
                 throw Exception("write to tunnel which is already closed," + tunnel_sender->getConsumerFinishMsg());
         }
 
-        if (send_queue->push(std::make_shared<mpp::MPPDataPacket>(data)))
+        if (send_queue->push(std::make_shared<DB::TrackedMppDataPacket>(data)))
         {
             connection_profile_info.bytes += data.ByteSizeLong();
             connection_profile_info.packets += 1;
@@ -311,10 +311,10 @@ void SyncTunnelSender::sendJob()
     String err_msg;
     try
     {
-        MPPDataPacketPtr res;
+        TrackedMPPDataPacketPtr res;
         while (send_queue->pop(res))
         {
-            if (!writer->write(*res))
+            if (!writer->write(*(res->packet)))
             {
                 err_msg = "grpc writes failed.";
                 break;
@@ -354,11 +354,11 @@ void AsyncTunnelSender::sendOne()
     bool queue_empty_flag = false;
     try
     {
-        MPPDataPacketPtr res;
+        TrackedMPPDataPacketPtr res;
         queue_empty_flag = !send_queue->pop(res);
         if (!queue_empty_flag)
         {
-            if (!writer->write(*res))
+            if (!writer->write(*(res->packet)))
             {
                 err_msg = "grpc writes failed.";
             }
@@ -383,9 +383,9 @@ void AsyncTunnelSender::sendOne()
 
 LocalTunnelSender::MPPDataPacketPtr LocalTunnelSender::readForLocal()
 {
-    MPPDataPacketPtr res;
+    TrackedMPPDataPacketPtr res;
     if (send_queue->pop(res))
-        return res;
+        return res->packet;
     consumerFinish("");
     return nullptr;
 }

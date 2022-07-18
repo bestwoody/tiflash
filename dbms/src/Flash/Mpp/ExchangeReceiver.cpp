@@ -64,6 +64,7 @@ bool pushPacket(size_t source_index,
 {
     bool push_succeed = true;
 
+    auto tracked_packet = std::make_shared<TrackedMppDataPacket>(packet);
     const mpp::Error * error_ptr = nullptr;
     if (packet->has_error())
         error_ptr = &packet->error();
@@ -106,7 +107,7 @@ bool pushPacket(size_t source_index,
             std::shared_ptr<ReceivedMessage> recv_msg = std::make_shared<ReceivedMessage>(
                 source_index,
                 req_info,
-                packet,
+                tracked_packet,
                 error_ptr,
                 resp_ptr,
                 std::move(chunks[i]));
@@ -133,7 +134,7 @@ bool pushPacket(size_t source_index,
             std::shared_ptr<ReceivedMessage> recv_msg = std::make_shared<ReceivedMessage>(
                 source_index,
                 req_info,
-                packet,
+                tracked_packet,
                 error_ptr,
                 resp_ptr,
                 std::move(chunks));
@@ -361,8 +362,32 @@ private:
         for (size_t i = 0; i < read_packet_index; ++i)
         {
             auto & packet = packets[i];
-            if (!pushPacket<enable_fine_grained_shuffle, false>(request->source_index, req_info, packet, *msg_channels, log))
+            try
+            {
+                if (!pushPacket<enable_fine_grained_shuffle, false>(request->source_index, req_info, packet, *msg_channels, log))
+                    return false;
+            }
+            catch (Exception & e)
+            {
+                err_msg = e.displayText();
                 return false;
+            }
+            catch (pingcap::Exception & e)
+            {
+                err_msg = e.message();
+                return false;
+            }
+            catch (std::exception & e)
+            {
+                err_msg = e.what();
+                return false;
+            }
+            catch (...)
+            {
+                err_msg = "unknown error";
+                return false;
+            }
+
             // can't reuse packet since it is sent to readers.
             packet = std::make_shared<MPPDataPacket>();
         }
@@ -682,7 +707,7 @@ DecodeDetail ExchangeReceiverBase<RPCContext>::decodeChunks(
         return detail;
 
     // Record total packet size even if fine grained shuffle is enabled.
-    detail.packet_bytes = recv_msg->packet->ByteSizeLong();
+    detail.packet_bytes = recv_msg->packet->packet->ByteSizeLong();
 
     for (const String * chunk : recv_msg->chunks)
     {

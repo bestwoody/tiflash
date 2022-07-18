@@ -41,6 +41,7 @@
 #include <Flash/DiagnosticsService.h>
 #include <Flash/FlashService.h>
 #include <Flash/Mpp/GRPCCompletionQueuePool.h>
+#include <Flash/Mpp/TrackedMppDataPacket.h>
 #include <Functions/registerFunctions.h>
 #include <IO/HTTPCommon.h>
 #include <IO/ReadHelpers.h>
@@ -1286,6 +1287,8 @@ int Server::main(const std::vector<std::string> & /*args*/)
         main_config_reloader->reload();
         users_config_reloader->reload();
     });
+
+    TrackedMppDataPacket::proc_memory_tracker = global_context->getProcessList().GetTotalMemoryTracker();
 
     /// Limit on total number of concurrently executed queries.
     global_context->getProcessList().setMaxSize(config().getInt("max_concurrent_queries", 0));

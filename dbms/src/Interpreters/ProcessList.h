@@ -265,6 +265,11 @@ public:
     /// User -> queries
     using UserToQueries = std::unordered_map<String, ProcessListForUser>;
 
+    MemoryTracker * GetTotalMemoryTracker()
+    {
+        return &total_memory_tracker;
+    }
+
 private:
     mutable std::mutex mutex;
     mutable std::condition_variable have_space; /// Number of currently running queries has become less than maximum.

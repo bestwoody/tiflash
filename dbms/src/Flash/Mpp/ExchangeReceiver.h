@@ -38,7 +38,7 @@ struct ReceivedMessage
     size_t source_index;
     String req_info;
     // shared_ptr<const MPPDataPacket> is copied to make sure error_ptr, resp_ptr and chunks are valid.
-    const std::shared_ptr<const MPPDataPacket> packet;
+    const std::shared_ptr<const TrackedMppDataPacket> packet;
     const mpp::Error * error_ptr;
     const String * resp_ptr;
     std::vector<const String *> chunks;
@@ -46,7 +46,7 @@ struct ReceivedMessage
     // Constructor that move chunks.
     ReceivedMessage(size_t source_index_,
                     const String & req_info_,
-                    const std::shared_ptr<const MPPDataPacket> & packet_,
+                    const std::shared_ptr<const TrackedMppDataPacket> & packet_,
                     const mpp::Error * error_ptr_,
                     const String * resp_ptr_,
                     std::vector<const String *> && chunks_)
