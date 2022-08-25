@@ -112,7 +112,7 @@ public:
         const ClientInfo & client_info_,
         size_t max_memory_usage,
         double memory_tracker_fault_probability,
-        size_t memory_tracker_accuracy_diff,
+        size_t memory_tracker_accuracy_diff_for_test,
         QueryPriorities::Handle && priority_handle_)
         : query(query_)
         , client_info(client_info_)
@@ -124,8 +124,8 @@ public:
 
         if (memory_tracker_fault_probability)
             memory_tracker.setFaultProbability(memory_tracker_fault_probability);
-        if (memory_tracker_accuracy_diff)
-            memory_tracker.setAccuracyDiff(memory_tracker_accuracy_diff);
+        if (memory_tracker_accuracy_diff_for_test)
+            memory_tracker.setAccuracyDiff(memory_tracker_accuracy_diff_for_test);
     }
 
     ~ProcessListElement()

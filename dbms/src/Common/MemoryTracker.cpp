@@ -70,7 +70,7 @@ void MemoryTracker::alloc(Int64 size, bool check_memory_limit)
       * So, we allow over-allocations.
       */
     Int64 current_amount = amount.load(std::memory_order_relaxed);
-    if (unlikely(accuracy_diff && real_rss > accuracy_diff + current_amount))
+    if (unlikely(!next.load(std::memory_order_relaxed) && accuracy_diff_for_test && real_rss > accuracy_diff_for_test + current_amount))
     {
         DB::FmtBuffer fmt_buf;
         fmt_buf.append("Memory tracker accuracy ");
